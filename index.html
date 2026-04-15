@@ -1045,6 +1045,32 @@ h1,h2,h3,h4,h5,h6 { text-wrap: balance; line-height: 1.2; }
         </div>
       </div>
 
+      <!-- All Time Stats -->
+      <div style="padding: 0 var(--space-5) var(--space-2)">
+        <div class="section-divider" style="padding:0 0 var(--space-3);margin-bottom:var(--space-3)">All Time</div>
+        <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);box-shadow:var(--shadow-sm)">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-3);text-align:center">
+            <div>
+              <div style="font-size:10px;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1)">Income</div>
+              <div style="font-family:var(--font-display);font-size:1rem;color:var(--color-income-text);font-variant-numeric:tabular-nums;font-weight:500" id="atIncome">—</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1)">Expenses</div>
+              <div style="font-family:var(--font-display);font-size:1rem;color:var(--color-expense-text);font-variant-numeric:tabular-nums;font-weight:500" id="atExpense">—</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1)">Profit</div>
+              <div style="font-family:var(--font-display);font-size:1rem;font-variant-numeric:tabular-nums;font-weight:500" id="atProfit">—</div>
+            </div>
+          </div>
+          <div style="height:1px;background:var(--color-divider);margin:var(--space-3) 0"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:var(--text-xs);color:var(--color-text-faint)">Total transactions</span>
+            <span style="font-size:var(--text-sm);color:var(--color-text);font-weight:500" id="atTxCount">0</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Income Sources breakdown (dynamic) -->
       <div id="channelSection" style="display:none">
         <div class="section-divider">Revenue by Source</div>
@@ -1058,7 +1084,7 @@ h1,h2,h3,h4,h5,h6 { text-wrap: balance; line-height: 1.2; }
       </div>
 
       <div class="chart-card">
-        <div class="chart-title">Top Expense Categories</div>
+        <div class="chart-title">Top Income Categories</div>
         <div class="chart-wrap"><canvas id="expCatChart"></canvas></div>
       </div>
 
@@ -1572,6 +1598,17 @@ function renderDashboard() {
   document.getElementById('kpiCashflow').textContent = (cashflow >= 0 ? '+' : '') + disp(cashflow);
   document.getElementById('kpiCashflow').className = 'kpi-value ' + (cashflow >= 0 ? 'kpi-value--income' : 'kpi-value--expense');
 
+  // All-time stats
+  const allTimeTxs = filterBySection(state.transactions);
+  const atIncome = allTimeTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const atExpense = allTimeTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const atProfit = atIncome - atExpense;
+  document.getElementById('atIncome').textContent = formatCurrency(atIncome, dominantCurrency);
+  document.getElementById('atExpense').textContent = formatCurrency(atExpense, dominantCurrency);
+  document.getElementById('atProfit').textContent = (atProfit >= 0 ? '+' : '') + formatCurrency(atProfit, dominantCurrency);
+  document.getElementById('atProfit').style.color = atProfit >= 0 ? 'var(--color-income-text)' : 'var(--color-expense-text)';
+  document.getElementById('atTxCount').textContent = allTimeTxs.length;
+
   // Channel breakdown - dynamic sources
   const channelSection = document.getElementById('channelSection');
   const sources = (state.sources && state.sources[currentSection]) || [];
@@ -1675,9 +1712,9 @@ function renderExpCatChart(txs, currency) {
   const ctx = document.getElementById('expCatChart');
   if (!ctx) return;
 
-  const expenses = txs.filter(t => t.type === 'expense');
+  const incomes = txs.filter(t => t.type === 'income');
   const byCategory = {};
-  expenses.forEach(t => {
+  incomes.forEach(t => {
     const cat = getCategoryName(t.categoryId);
     byCategory[cat] = (byCategory[cat] || 0) + t.amount;
   });
